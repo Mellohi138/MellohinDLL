@@ -16,7 +16,7 @@ public class ConsequenceUpgradeSkillOnDashboard : IModularConsequence
 			for (int i = 0; i < sinSlot.currentSinList.Count; i++)
 			{
 				SkillModel skillModel = sinSlot.currentSinList[i].GetSkill();
-				if (skillModel.GetID() == skillID)
+				if (skillModel.GetID() == skillID || (skillModel.IsDefense() && skillModel.GetID() == sinSlot.GetReplacedSinByDefenseSkill().GetSkill().GetID()))
 				{
 					sinSlot.currentSinList[i] = new(upgradedID, unitModel, sinSlot, true);
 					goto End;

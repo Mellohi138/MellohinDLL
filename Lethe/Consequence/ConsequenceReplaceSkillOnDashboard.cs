@@ -11,31 +11,42 @@ public class ConsequenceReplaceSkillOnDashboard : IModularConsequence
 		BattleUnitModel unitModel = modular.modsa_unitModel;
 		if (unitModel == null) return;
 
-		List<(int, int, int)> skillSlotList = [];
-		int[] skillIDList = new int[circles.Length];
-		for(int i = 0; i < circles.Length; i++) skillIDList[i] = modular.GetNumFromParamString(circles[i]);
-		foreach (SinActionModel sinSlot in unitModel.GetSinActionList())
+		int sinActionIndex = modular.GetNumFromParamString(circles[0]);
+		int unitSinModelIndex = modular.GetNumFromParamString(circles[1]);
+		int[] skillIDList = new int[circles.Length - 2];
+		for (int i = 2; i < circles.Length; i++) skillIDList[i - 2] = modular.GetNumFromParamString(circles[i]);
+
+		if (sinActionIndex < 0 || unitSinModelIndex < 0)
 		{
-			for(int i = 0; i < sinSlot.currentSinList.Count; i++)
+			List<(int, int, int)> skillSlotList = [];
+			foreach (SinActionModel sinSlot in unitModel.GetSinActionList())
 			{
-				SkillModel skillModel = sinSlot.currentSinList[i].GetSkill();
-				if (skillIDList.Contains(skillModel.GetID()))
+				for (int i = 0; i < sinSlot.currentSinList.Count; i++)
 				{
-					goto SkipEverything;
+					SkillModel skillModel = sinSlot.currentSinList[i].GetSkill();
+					if (skillIDList.Contains(skillModel.GetID()))
+					{
+						goto SkipEverything;
+					}
+
+					if (skillModel.IsDefense() && skillIDList.Contains(sinSlot.GetReplacedSinByDefenseSkill().GetSkill().GetID()))
+					{
+						goto SkipEverything;
+					}
+
+					if (skillModel.IsEgoSkill()) continue;
+
+					skillSlotList.Add(new(sinSlot.GetSlotIndex(), i, skillModel.GetSkillTier()));
 				}
-
-				if (skillModel.IsEgoSkill()) continue;
-
-				skillSlotList.Add(new(sinSlot.GetSlotIndex(), i, skillModel.GetSkillTier()));
 			}
+			skillSlotList.Sort(new SkillComparer());
+			sinActionIndex = skillSlotList[0].Item1;
+			unitSinModelIndex = skillSlotList[0].Item2;
 		}
 
-		skillSlotList.Sort(new SkillComparer());
-		SinActionModel targetAction = unitModel.GetSinActionList()[skillSlotList[0].Item1];
-		targetAction.currentSinList[skillSlotList[0].Item2] = new(skillIDList[0], unitModel, targetAction, true);
-
-	SkipEverything:
-		_ = skillSlotList;
+		SinActionModel targetAction = unitModel.GetSinActionList()[sinActionIndex];
+		targetAction.currentSinList[unitSinModelIndex] = new(skillIDList[0], unitModel, targetAction, true);
+	SkipEverything: return;
 	}
 
 	private class SkillComparer : IComparer<(int, int, int)>
